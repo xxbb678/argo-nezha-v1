@@ -13,7 +13,7 @@ jwt_timeout: 1
 language: zh_CN
 listen_port: 8008
 location: Asia/Shanghai
-site_name: Nezha-V1
+site_name: xxbb678 哪吒面板
 tls: true
 oauth2:
   GitHub:

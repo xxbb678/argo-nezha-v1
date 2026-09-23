@@ -1,7 +1,8 @@
 # Argo Nezha Dashboard V1
 
-本项目修改自 [ssfun/argo-nezha](https://github.com/ssfun/argo-nezha)，原版采用 cf-r2 作为备份方案，我改成了采用 `github 私有仓库`作为备份方案
+**作者/维护者：[xxbb678](https://github.com/xxbb678)**
 
+本项目由 [xxbb678](https://github.com/xxbb678) 维护，修改自 [ssfun/argo-nezha](https://github.com/ssfun/argo-nezha)，原版采用 cf-r2 作为备份方案，本项目改为采用 `github 私有仓库`作为备份方案
 
 ----
 
@@ -205,8 +206,19 @@ oauth2:
   - 规则：`[{"type":"offline","duration":180,"cover":0}]`
 - 其他警报规则请看官方文档
 
+
+----
+
+## 作者与维护
+
+- 仓库地址：https://github.com/xxbb678/argo-nezha-v1
+- 作者 / 维护者：[xxbb678](https://github.com/xxbb678)
+- 镜像源：ghcr.io/xxbb678/argo-nezha-v1
+
 ----
 
 ## 许可证
 
 本项目采用 [MIT 许可证](LICENSE)。
+
+Copyright (c) 2026 [xxbb678](https://github.com/xxbb678)
