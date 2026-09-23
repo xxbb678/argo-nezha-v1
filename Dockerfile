@@ -22,12 +22,7 @@ RUN mkdir -p /dashboard/data && chmod -R 777 /dashboard
 
 EXPOSE 443 8008
 
-ENV ARGO_DOMAIN="" \
-    CF_TOKEN="" \
-    R2_ACCESS_KEY_ID="" \
-    R2_BUCKET_NAME="" \
-    R2_ENDPOINT_URL="" \
-    R2_SECRET_ACCESS_KEY=""
+ENV ARGO_DOMAIN=""
 
 COPY docker_backup.sh /backup.sh
 COPY entrypoint.sh /entrypoint.sh
