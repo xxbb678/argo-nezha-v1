@@ -4,10 +4,15 @@
 ARGO_DOMAIN=${ARGO_DOMAIN:-""}
 CF_TOKEN=${CF_TOKEN:-""}
 
-# 配置定时备份任务
+# 配置定时备份任务（02:40，与宿主机 02:10 错开，避免同时推送同一分支冲突）
 echo "配置定时备份任务..."
 mkdir -p "/logs" || echo "无法创建日志目录"
-echo "0 2 * * * /backup.sh backup > /logs/backup.log 2>&1 # NEZHA-V1-BACKUP" > /var/spool/cron/crontabs/root
+CROONTAB="/var/spool/cron/crontabs/root"
+mkdir -p "$(dirname "$CROONTAB")"
+touch "$CROONTAB"
+if ! grep -qF "# NEZHA-V1-BACKUP" "$CROONTAB" 2>/dev/null; then
+    echo "40 2 * * * /backup.sh backup > /logs/backup.log 2>&1 # NEZHA-V1-BACKUP" >> "$CROONTAB"
+fi
 
 # 尝试恢复备份
 echo "尝试恢复备份..."

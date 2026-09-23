@@ -25,12 +25,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get latest release tag
         id: get_latest_tag
         run: |
-          LATEST_TAG=$(curl -s https://api.github.com/repos/${{ env.GITHUB_REPO }}/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+          LATEST_TAG=$(curl -fsSL "https://api.github.com/repos/${{ env.GITHUB_REPO }}/releases/latest" | jq -r '.tag_name // empty')
+          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
+            echo "获取上游版本失败，跳过本次构建"
+            echo "latest_tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "Latest tag: $LATEST_TAG"
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
@@ -51,6 +56,11 @@ jobs:
         run: |
           LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
           CURRENT_TAG="${{ steps.get_current_version.outputs.current_tag }}"
+          if [ -z "$LATEST_TAG" ]; then
+            echo "未取得上游版本，跳过构建"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           LATEST_VERSION=$(echo "$LATEST_TAG" | sed 's/^v//')
           CURRENT_VERSION=$(echo "$CURRENT_TAG" | sed 's/^v//')
@@ -67,11 +77,11 @@ jobs:
 
       - name: Set up Docker Buildx
         if: steps.compare_versions.outputs.should_build == 'true'
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
         if: steps.compare_versions.outputs.should_build == 'true'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ env.GHCR_USERNAME }}
@@ -79,7 +89,7 @@ jobs:
 
       - name: Build and push Docker image to GHCR
         if: steps.compare_versions.outputs.should_build == 'true'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -118,4 +128,3 @@ jobs:
           keep_minimum_runs: 6
 
 
-# resend

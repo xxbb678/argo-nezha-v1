@@ -20,7 +20,7 @@ COPY --from=app /dashboard/app /dashboard/app
 
 RUN mkdir -p /dashboard/data && chmod -R 777 /dashboard
 
-EXPOSE 8008
+EXPOSE 443 8008
 
 ENV ARGO_DOMAIN="" \
     CF_TOKEN="" \

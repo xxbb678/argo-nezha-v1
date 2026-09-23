@@ -105,7 +105,7 @@ config_cron() {
     # 配置自动备份
     CRON_DIR="$(pwd)"
     info "当前工作目录为: $CRON_DIR"
-    read -p $'\n是否开启数据自动备份？(每天2点执行) [y/N] ' enable_backup
+    read -r -p $'\n是否开启数据自动备份？(每天02:10执行) [y/N] ' enable_backup || { echo; warning "输入中断，已跳过自动备份配置"; enable_backup="n"; }
 
     if [[ "$enable_backup" =~ [Yy] ]]; then
         backup_script="$CRON_DIR/backup.sh"
@@ -116,7 +116,7 @@ config_cron() {
         chmod +x "$backup_script" || { warning "权限设置失败: $backup_script"; }
     
         # 原子化配置定时任务
-        backup_job="0 2 * * * ("
+        backup_job="10 2 * * * ("
         backup_job+="export TZ=Asia/Shanghai; "
         backup_job+="log_file=\"$log_dir/backup-\$(date +\%Y\%m\%d-\%H\%M\%S).log\"; "
         backup_job+="/bin/bash '$backup_script' backup > \"\$log_file\" 2>&1"
@@ -163,7 +163,11 @@ validate_github_token() {
              https://api.github.com/user)
     status=${response: -3}
     body=${response%???}
-    if [ "$status" -ne 200 ]; then
+    if [ -z "$status" ]; then
+        error "无法连接 GitHub API（网络异常或超时）"
+        exit 1
+    fi
+    if [ "$status" != "200" ]; then
         error "Token验证失败! HTTP状态码: $status\n响应信息: $body"
         exit 1
     fi
@@ -176,7 +180,8 @@ clone_or_update_repo() {
     info "正在处理仓库: $project_dir"
     if [ -d "$project_dir" ]; then
         warning "检测到现有安装，执行安全更新..."
-        local backup_dir=$(mktemp -d) || {
+        local backup_dir
+        backup_dir=$(mktemp -d) || {
             error "临时目录创建失败"
             return 1
         }
@@ -233,7 +238,8 @@ input_variables() {
     echo -e "\n${YELLOW}==== 配置输入 (按Ctrl+C退出) ====${NC}"
     
     while true; do
-        read -p $'\nGitHub Token: ' GITHUB_TOKEN
+        read -r -s -p $'\nGitHub Token: ' GITHUB_TOKEN || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
+        echo
         [ -n "$GITHUB_TOKEN" ] && break
         warning "Token不能为空!"
     done
@@ -241,12 +247,12 @@ input_variables() {
     validate_github_token
     
     while true; do
-        read -p $'\nGitHub 用户名: ' GITHUB_REPO_OWNER
+        read -r -p $'\nGitHub 用户名: ' GITHUB_REPO_OWNER || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
         [ -n "$GITHUB_REPO_OWNER" ] && break
         warning "用户名不能为空!"
     done
     
-    read -p $'\n用于备份的 GitHub 仓库名 (默认创建私有仓库 nezha-backup): ' GITHUB_REPO_NAME
+    read -r -p $'\n用于备份的 GitHub 仓库名 (默认创建私有仓库 nezha-backup): ' GITHUB_REPO_NAME || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
     GITHUB_REPO_NAME=${GITHUB_REPO_NAME:-nezha-backup}
     # 检查仓库是否存在，不存在则创建
     repo_status=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -288,13 +294,14 @@ input_variables() {
     echo -e "${RED}==================================================================${NC}"
     
     while true; do
-        read -p $'\n请输入Argo Token: ' ARGO_AUTH
+        read -r -s -p $'\n请输入Argo Token: ' ARGO_AUTH || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
+        echo
         [ -n "$ARGO_AUTH" ] && break
         warning "Token不能为空!"
     done
     
     while true; do
-        read -p $'\n哪吒面板域名 (如nezha.example.com): ' ARGO_DOMAIN
+        read -r -p $'\n哪吒面板域名 (如nezha.example.com): ' ARGO_DOMAIN || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
         if [[ "$ARGO_DOMAIN" =~ ^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}$ ]]; then
             break
         else
@@ -337,8 +344,10 @@ main() {
 
     # 克隆项目仓库
     clone_url="${GH_PROXY_URL}/${GH_CLONE_URL}"
-    if ! clone_or_update_repo "$clone_url"; then
-        error "仓库处理失败，错误码: $?"
+    clone_or_update_repo "$clone_url"
+    clone_rc=$?
+    if [ "$clone_rc" -ne 0 ]; then
+        error "仓库处理失败，错误码: $clone_rc"
         exit 1
     fi
 
