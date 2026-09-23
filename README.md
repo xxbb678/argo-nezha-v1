@@ -44,7 +44,7 @@
 #### **执行一键脚本**
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/qingfenggit/argo-nezha-v1/github/nezhav1.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/xxbb678/argo-nezha-v1/github/nezhav1.sh)
 ```
 
 **20250620更新**：已修复自动备份功能——执行上述脚本后根据提示开启自动备份功能，脚本会向系统写入备份脚本的定时任务
@@ -70,7 +70,7 @@ https://你在argo隧道中设置的面板域名
 依次执行以下命令: 注意--需要在 .env 文件中填入变量值
 
 ```bash
-git clone -b github https://ghproxy.net/https://github.com/qingfenggit/argo-nezha-v1.git
+git clone -b github https://ghproxy.net/https://github.com/xxbb678/argo-nezha-v1.git
 cd argo-nezha-v1
 docker compose pull
 docker compose up -d
@@ -80,7 +80,7 @@ docker compose up -d
 1. **拉取dockhub镜像**
 
 ```bash
-docker pull qingfzf/argo-nezha-v1:latest
+docker pull ghcr.io/xxbb678/argo-nezha-v1:latest
 ```
 
 2. **设置变量**
