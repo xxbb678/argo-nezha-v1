@@ -7,6 +7,11 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: '强制构建（忽略版本比较，用于脚本/Dockerfile 改动后重建镜像）'
+        type: boolean
+        default: false
   schedule:
     - cron: '0 20 * * 6'  # Asia/Shanghai 每周天凌晨4点
 
@@ -56,6 +61,11 @@ jobs:
         run: |
           LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
           CURRENT_TAG="${{ steps.get_current_version.outputs.current_tag }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            echo "手动强制构建，跳过版本比较"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
           if [ -z "$LATEST_TAG" ]; then
             echo "未取得上游版本，跳过构建"
             echo "should_build=false" >> $GITHUB_OUTPUT
