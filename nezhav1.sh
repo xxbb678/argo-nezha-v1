@@ -24,7 +24,7 @@ check_docker() {
     # 检查并安装 Docker
     if ! command -v docker &>/dev/null; then
         warning "Docker未安装, 正在自动安装..."
-        curl -fsSL https://get.docker.com | sh || {
+        curl -fsSL --connect-timeout 10 --max-time 60 https://get.docker.com | sh || {
             error "Docker安装失败! 请手动安装后重试"
             exit 1
         }
@@ -157,7 +157,7 @@ check_ports() {
 # 验证GitHub Token
 validate_github_token() {
     info "验证GitHub Token权限..."
-    response=$(curl -s -w "%{http_code}" \
+    response=$(curl -s --connect-timeout 10 --max-time 20 -w "%{http_code}" \
              -H "Authorization: token $GITHUB_TOKEN" \
              -H "Accept: application/vnd.github+json" \
              https://api.github.com/user)
@@ -238,7 +238,7 @@ input_variables() {
     echo -e "\n${YELLOW}==== 配置输入 (按Ctrl+C退出) ====${NC}"
     
     while true; do
-        read -r -s -p $'\nGitHub Token: ' GITHUB_TOKEN || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
+        read -r -p $'\nGitHub Token (明文显示, 粘贴后回车): ' GITHUB_TOKEN || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
         echo
         [ -n "$GITHUB_TOKEN" ] && break
         warning "Token不能为空!"
@@ -255,7 +255,7 @@ input_variables() {
     read -r -p $'\n用于备份的 GitHub 仓库名 (默认创建私有仓库 nezha-backup): ' GITHUB_REPO_NAME || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
     GITHUB_REPO_NAME=${GITHUB_REPO_NAME:-nezha-backup}
     # 检查仓库是否存在，不存在则创建
-    repo_status=$(curl -s -o /dev/null -w "%{http_code}" \
+    repo_status=$(curl -s --connect-timeout 10 --max-time 20 -o /dev/null -w "%{http_code}" \
                  -H "Authorization: token $GITHUB_TOKEN" \
                  -H "Accept: application/vnd.github+json" \
                  https://api.github.com/repos/$GITHUB_REPO_OWNER/$GITHUB_REPO_NAME)
@@ -265,7 +265,7 @@ input_variables() {
 	    success "仓库已存在，跳过创建" ;;
         404)
             info "正在创建私有仓库..."
-            curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            curl -X POST --connect-timeout 10 --max-time 20 -H "Authorization: token $GITHUB_TOKEN" \
                  -H "Accept: application/vnd.github+json" \
                  -d '{"name":"'"$GITHUB_REPO_NAME"'","private":true}' \
             https://api.github.com/user/repos || {
@@ -294,7 +294,7 @@ input_variables() {
     echo -e "${RED}==================================================================${NC}"
     
     while true; do
-        read -r -s -p $'\n请输入Argo Token: ' ARGO_AUTH || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
+        read -r -p $'\n请输入Argo Token (明文显示, 粘贴后回车): ' ARGO_AUTH || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
         echo
         [ -n "$ARGO_AUTH" ] && break
         warning "Token不能为空!"
@@ -337,7 +337,7 @@ main() {
     check_cron # 检查cron服务并安装
     
     info "正在检查网络连接..."
-    if ! retry 3 curl -s -I https://github.com >/dev/null; then
+    if ! retry 3 curl -s --connect-timeout 10 --max-time 20 -I https://github.com >/dev/null; then
         error "网络连接异常，请检查网络设置！"
         exit 1
     fi
