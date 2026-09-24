@@ -6,11 +6,16 @@ if [ -z "$BASH_VERSION" ]; then
     exit 0
 fi
 
-# 加载同目录下的.env文件（如果存在）
+# 容器内备份脚本：数据目录为 /dashboard/data/
+# 加载同目录下的 .env，按第一个等号分隔，保留值中的其余等号
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 if [ -f "$SCRIPT_DIR/.env" ]; then
-    while IFS='=' read -r key value; do
-        [[ "$key" =~ ^# ]] || [[ -z "$key" ]] && continue
+    while IFS= read -r line || [ -n "$line" ]; do
+        [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line//[[:space:]]/}" ]] && continue
+        [[ "$line" == *=* ]] || continue
+        key=${line%%=*}
+        value=${line#*=}
+        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
         value="${value%\"}"
         value="${value#\"}"
         value="${value%\'}"

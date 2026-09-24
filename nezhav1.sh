@@ -284,8 +284,8 @@ input_variables() {
     esac
     
     echo -e "\n${YELLOW}Argo Token 说明：${NC}"
-    echo -e "- 纯Token格式: 'ey开头的一长串字符'"
-    echo -e "- JSON格式: '{\"Token\":\"xxx\"}' (注意单引号包裹)"
+    echo -e "- 只支持 Cloudflare Tunnel 的纯 Token（通常以 ey 开头）"
+    echo -e "- 不要粘贴 JSON、cloudflared 命令或引号"
     echo -e "\n${YELLOW}以下设置必须严格遵守，否则无法访问面板${NC}"
     echo -e "${RED}==================================================================${NC}"
     echo -e "- ${RED}aogo 隧道设置 --> 其他设置 --> TLS --> 无TLS验证: on; HTTP2连接: on${NC}"
@@ -296,8 +296,11 @@ input_variables() {
     while true; do
         read -r -p $'\n请输入Argo Token (明文显示, 粘贴后回车): ' ARGO_AUTH || { echo; error "输入被中断(Ctrl+C/EOF)，退出"; exit 1; }
         echo
-        [ -n "$ARGO_AUTH" ] && break
-        warning "Token不能为空!"
+        if [[ "$ARGO_AUTH" == ey* && "$ARGO_AUTH" != *[[:space:]]* ]]; then
+            break
+        fi
+        warning "格式无效：请输入不带引号的纯 Tunnel Token"
+        ARGO_AUTH=""
     done
     
     while true; do

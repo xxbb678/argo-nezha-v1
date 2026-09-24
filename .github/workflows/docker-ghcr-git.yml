@@ -3,9 +3,17 @@ name: docker-ghcr-git
 permissions:
   contents: write
   packages: write
-  id-token: write
 
 on:
+  push:
+    branches:
+      - github
+    paths:
+      - Dockerfile
+      - entrypoint.sh
+      - docker_backup.sh
+      - main.conf
+      - .github/workflows/docker-ghcr-git.yml
   workflow_dispatch:
     inputs:
       force:
@@ -61,6 +69,11 @@ jobs:
         run: |
           LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
           CURRENT_TAG="${{ steps.get_current_version.outputs.current_tag }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "镜像相关文件有变更，强制重建"
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
             echo "手动强制构建，跳过版本比较"
             echo "should_build=true" >> $GITHUB_OUTPUT

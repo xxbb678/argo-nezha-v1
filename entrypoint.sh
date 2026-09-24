@@ -13,9 +13,13 @@ if ! grep -qF "# NEZHA-V1-BACKUP" "$CROONTAB" 2>/dev/null; then
     echo "40 2 * * * /backup.sh backup > /logs/backup.log 2>&1 # NEZHA-V1-BACKUP" >> "$CROONTAB"
 fi
 
-# 尝试恢复备份
-echo "尝试恢复备份..."
-/backup.sh restore
+# 仅首次部署或本地数据库丢失时恢复，避免普通重启被旧备份回滚
+if [ ! -s /dashboard/data/sqlite.db ]; then
+    echo "本地数据库不存在，尝试从备份恢复..."
+    /backup.sh restore || echo "未能恢复备份，将由 dashboard 初始化新数据库"
+else
+    echo "检测到现有数据库，跳过自动恢复"
+fi
 
 # 启动 crond
 echo "启动 cron 定时任务服务..."
