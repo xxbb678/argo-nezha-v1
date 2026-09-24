@@ -346,6 +346,28 @@ ensure_realip() {
     fi
 }
 
+# 数据库切 WAL + busy_timeout，杜绝并发写锁导致 WAF 全民403（database is locked）
+ensure_sqlite_wal() {
+    local db mode
+    db=$(find ./dashboard -maxdepth 2 -name "sqlite.db" 2>/dev/null | head -n1)
+    [ -n "$db" ] && [ -f "$db" ] || { warning "未找到 sqlite.db，跳过 WAL 切换（首次启动需先起一次容器生成库）"; return 0; }
+    mode=$(sqlite3 "$db" "PRAGMA journal_mode;" 2>/dev/null)
+    if [ "$mode" = "wal" ]; then
+        success "数据库已是 WAL 模式"
+        return 0
+    fi
+    info "数据库当前 $mode → 切换 WAL（需停机数秒）..."
+    docker compose stop >/dev/null 2>&1 || true
+    sqlite3 "$db" "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=12000; VACUUM;" >/dev/null 2>&1
+    docker compose start >/dev/null 2>&1 || true
+    mode=$(sqlite3 "$db" "PRAGMA journal_mode;" 2>/dev/null)
+    if [ "$mode" = "wal" ]; then
+        success "已切换 WAL + busy_timeout，杜绝并发写锁导致的 WAF 全民403"
+    else
+        warning "WAL 切换结果未知(mode=$mode)，若仍报 database is locked 请手动处理"
+    fi
+}
+
 # 主流程
 main() {
     trap 'error "脚本被用户中断"; exit 1' INT
@@ -382,6 +404,7 @@ main() {
         exit 1
     }
     success "✅ 哪吒面板部署成功! 访问地址: https://${ARGO_DOMAIN}"
+    ensure_sqlite_wal  # 数据库切 WAL，杜绝并发写锁导致的 WAF 全民403
 
     config_cron # 配置自动备份定时任务
 
