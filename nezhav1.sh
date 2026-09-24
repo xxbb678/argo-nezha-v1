@@ -328,6 +328,24 @@ EOF
     }' .env | column -t
 }
 
+# 部署前兜底：确保后端能拿到真实访客IP，防止 WAF 把所有人当成同一IP误锁
+ensure_realip() {
+    local cfg="dashboard/config.yaml"
+    [ -f "$cfg" ] || { warning "未找到 $cfg，跳过真实IP自动校正"; return 0; }
+    if ! grep -qE '^\s*web_real_ip_header\s*:' "$cfg"; then
+        printf '\nweb_real_ip_header: nz-realip\n' >> "$cfg"
+        info "自动补写 web_real_ip_header: nz-realip（后端读取 nginx 透传的真实访客IP）"
+    elif grep -qE '^\s*web_real_ip_header\s*:\s*$' "$cfg"; then
+        sed -i 's#^\s*web_real_ip_header:.*#web_real_ip_header: nz-realip#' "$cfg"
+        info "已校正 web_real_ip_header=nz-realip"
+    fi
+    if [ -f main.conf ] && grep -q 'nz-realip' main.conf; then
+        success "真实IP透传链路就绪：nginx(nz-realip) → dashboard(web_real_ip_header)"
+    else
+        warning "未在 main.conf 找到 nz-realip 透传；若面板走 CDN/隧道，访客会被 WAF 当成同一IP误封（建议使用仓库默认 main.conf）"
+    fi
+}
+
 # 主流程
 main() {
     trap 'error "脚本被用户中断"; exit 1' INT
@@ -355,7 +373,9 @@ main() {
     cd "$project_dir" || { error "目录切换失败"; exit 1; }
     grep -qxF ".env" .gitignore || echo ".env" >> .gitignore
     input_variables
-    
+
+    ensure_realip  # 部署前自动校正真实IP请求头，防止 WAF 误锁
+
     info "正在启动服务..."
     docker compose pull && docker compose up -d || {
         error "启动失败！请检查:\n1. Docker服务状态\n2. 磁盘空间\n3. 端口冲突"

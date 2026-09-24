@@ -155,7 +155,7 @@ docker exec -it argo-nezha-v1 /backup.sh restore
 
 2. **Agent 使用 TLS 连接**：打 √
 
-3. **前端真实IP请求头**：nz-realip （也可以不设置）
+3. **前端真实IP请求头**：nz-realip（**必须设置，不能留空**。面板走 Cloudflare Tunnel/CDN 时，此项缺失会拿不到真实访客IP，内置 WAF 会把所有访问者当成同一IP、跨用户累加封锁记录导致频繁误锁。仓库 `dashboard/config.yaml` 已自动配好，`nezhav1.sh` 部署前也会自动校正）
 
 ### 绑定 github 登录
 
